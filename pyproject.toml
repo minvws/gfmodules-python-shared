@@ -1,0 +1,51 @@
+[tool.poetry]
+name = "gfmodules-python-shared"
+version = "0.0.1"
+description = "a shared library for common classes to be used across gf-modules"
+license = "EUPL-1.2"
+authors = ["Ministerie van Volksgezondheid, Welzijn en Sport"]
+repository = "https://github.com/minvws/gfmodules-python-shared"
+readme = "README.md"
+packages = [
+    { include = "gfmodules_python_shared", from="src" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+sqlalchemy = "^2.0.25"
+inject = "^5.2.0"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.4"
+pytest-cov = "^4.1.0"
+httpx = "^0.26.0"
+mypy = "^1.8.0"
+safety = "^3.2.0"
+ruff = "^0.1.13"
+codespell = "^2.2.6"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+cache-dir = "~/.cache/ruff"
+include = [
+    "pyproject.toml",
+    "src/*.py",
+    "tests/*.py",
+]
+
+[tool.mypy]
+files = "src,tests"
+python_version = "3.11"
+strict = true
+cache_dir = "~/.cache/mypy"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+cache_dir = "~/.cache/pytest"
+testpaths = [
+    "tests",
+]
