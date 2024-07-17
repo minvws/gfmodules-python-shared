@@ -7,4 +7,3 @@ secrets/
 *.priv
 *.pub
 .autopilot
-docker-compose.override.yml
