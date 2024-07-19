@@ -1,23 +1,45 @@
-from typing import TypeVar, Union, Dict, Generic, Sequence, List
+from abc import ABC, abstractmethod
+from typing import TypeVar, Union, Dict, Generic, Sequence, List, Type
 from uuid import UUID
 
 from sqlalchemy import select, or_, func
 from sqlalchemy.exc import InvalidRequestError
+from sqlalchemy.orm import DeclarativeBase
 
-from gfmodules_python_shared.repository.exceptions import EntryNotFound
-from gfmodules_python_shared.session.db_session import DbSession
-from gfmodules_python_shared.utils.validators import validate_sets_equal
+from src.gfmodules_python_shared.repository.exceptions import EntryNotFound
+from src.gfmodules_python_shared.session.db_session import DbSession
+from src.gfmodules_python_shared.utils.validators import validate_sets_equal
 
-T = TypeVar("T")
+T = TypeVar("T", bound=DeclarativeBase)
 
 TArgs = TypeVar("TArgs", bound=Union[str, UUID, Dict[str, str]])
 
 
-class RepositoryBase(Generic[T]):
-    model = T  # type: ignore
-
-    def __init__(self, session: DbSession) -> None:
+class GenericRepository(Generic[T], ABC):
+    def __init__(self, session: DbSession):
         self.session = session
+
+    @abstractmethod
+    def create(self, entity: T) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update(self, entity: T) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete(self, entity: T) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get(self, **kwargs: TArgs) -> T | None:
+        raise NotImplementedError
+
+
+class RepositoryBase(GenericRepository[T], ABC):
+    def __init__(self, session: DbSession, cls_model: Type[T]) -> None:
+        super().__init__(session)
+        self.model = cls_model
 
     def create(self, entity: T) -> None:
         return self.session.create(entity)
@@ -90,10 +112,10 @@ class RepositoryBase(Generic[T]):
 
     def _validate_kwargs(self, **kwargs: TArgs) -> None:
         # check if kwargs are a subset of column names for a given model
+        if not issubclass(self.model, DeclarativeBase):
+            raise TypeError(f"Model {self.model} is not a subclass of Declarative Base")
+
         if not (set([*kwargs]) <= set([*self.model.__table__.columns.keys()])):
             raise InvalidRequestError(
-                f"{[*kwargs]} is not a column in the {self.model.__name__}ß"
+                f"{[*kwargs]} is not a column in the {self.model.__name__}"
             )
-
-
-TRepositoryBase = TypeVar("TRepositoryBase", bound=RepositoryBase, covariant=True)  # type: ignore

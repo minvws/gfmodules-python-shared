@@ -38,7 +38,7 @@ include = [
 ]
 
 [tool.mypy]
-files = "src,tests"
+files = ["src", "tests"]
 python_version = "3.11"
 strict = true
 cache_dir = "~/.cache/mypy"
