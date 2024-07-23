@@ -1,11 +1,9 @@
-import logging
 from typing import Any, TypeVar, Sequence
 
 from sqlalchemy import Engine, Select
 from sqlalchemy.exc import DatabaseError
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -68,4 +66,3 @@ class DbSession(object):
         except DatabaseError as e:
             self.session.rollback()
             raise e
-

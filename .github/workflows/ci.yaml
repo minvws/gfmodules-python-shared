@@ -1,0 +1,117 @@
+name: CI
+
+on:
+    workflow_dispatch:
+    pull_request:
+    push:
+        branches:
+            - main
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    build:
+        name: Build
+        runs-on: ubuntu-22.04
+
+        steps:
+            - name: Checkout repositories
+              uses: actions/checkout@v4
+
+            - name: Run build action
+              uses: minvws/nl-irealisatie-generic-pipelines/.github/actions/poetry-install@main
+              with:
+                python_version: "3.11"
+
+    lint:
+        name: Run code linter
+        runs-on: ubuntu-22.04
+        needs: build
+
+        steps:
+            - name: Checkout repositories
+              uses: actions/checkout@v4
+
+            - name: Build
+              uses: minvws/nl-irealisatie-generic-pipelines/.github/actions/poetry-install@main
+              with:
+                python_version: "3.11"
+
+            - name: Lint
+              run: make lint --just-print --silent
+
+    type-check:
+        name: Check static types
+        runs-on: ubuntu-22.04
+        needs: build
+
+        steps:
+            - name: Checkout repositories
+              uses: actions/checkout@v4
+
+            - name: Build
+              uses: minvws/nl-irealisatie-generic-pipelines/.github/actions/poetry-install@main
+              with:
+                python_version: "3.11"
+
+            - name: Check static types
+              run: make type-check --just-print --silent
+
+    safety-check:
+        name: Scan packages for vulnerabilities
+        runs-on: ubuntu-22.04
+        needs: build
+
+        steps:
+            - name: Checkout repositories
+              uses: actions/checkout@v4
+
+            - name: Build
+              uses: minvws/nl-irealisatie-generic-pipelines/.github/actions/poetry-install@main
+              with:
+                python_version: "3.11"
+
+            - name: Scan packages for vulnerabilities
+              run: make safety-check --just-print --silent
+
+    spelling-check:
+        name: Run spelling check
+        runs-on: ubuntu-22.04
+        needs: build
+
+        steps:
+            - name: Checkout repositories
+              uses: actions/checkout@v4
+
+            - name: Build
+              uses: minvws/nl-irealisatie-generic-pipelines/.github/actions/poetry-install@main
+              with:
+                python_version: "3.11"
+
+            - name: Run spelling check
+              run: make spelling-check --just-print --silent
+
+    test:
+        name: Run the tests
+        runs-on: ubuntu-22.04
+        needs: build
+
+        steps:
+            - name: Checkout repositories
+              uses: actions/checkout@v4
+
+            - name: Build
+              uses: minvws/nl-irealisatie-generic-pipelines/.github/actions/poetry-install@main
+              with:
+                python_version: "3.11"
+
+            - name: Run the tests
+              run: make test --just-print --silent
+
+            - name: Upload coverage report
+              uses: actions/upload-artifact@v4
+              with:
+                name: coverage
+                path: coverage.xml

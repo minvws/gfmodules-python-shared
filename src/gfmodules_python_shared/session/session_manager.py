@@ -5,7 +5,6 @@ from typing import Callable, TypeVar, ParamSpec, Any
 
 from src.gfmodules_python_shared.session.session_factory import DbSessionFactory
 from src.gfmodules_python_shared.repository.repository_base import RepositoryBase
-from app.db.repository_factory import RepositoryFactory
 
 
 T = TypeVar("T")
@@ -22,6 +21,10 @@ def session_manager(func: Callable[P, T]) -> Callable[P, T]:
         signature = inspect.signature(func)
 
         db_session_factory = inject.instance(DbSessionFactory)
+        from gfmodules_python_shared.repository.repository_factory import (
+            RepositoryFactory,
+        )
+
         repository_factory = inject.instance(RepositoryFactory)
 
         func_args: P.args = {}
