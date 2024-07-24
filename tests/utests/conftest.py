@@ -1,12 +1,13 @@
 from typing import Generator, Any
 
 import pytest
-from gfmodules_python_shared.session.db_session import DbSession
-from gfmodules_python_shared.session.session_factory import DbSessionFactory
+
 
 from app.db import Database
 from app.model import Person
 from app.repository import PersonRepository
+from gfmodules_python_shared.session.db_session import DbSession
+from gfmodules_python_shared.session.session_factory import DbSessionFactory
 
 
 @pytest.fixture()

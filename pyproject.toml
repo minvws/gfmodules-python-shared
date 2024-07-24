@@ -7,7 +7,7 @@ authors = ["Ministerie van Volksgezondheid, Welzijn en Sport"]
 repository = "https://github.com/minvws/gfmodules-python-shared"
 readme = "README.md"
 packages = [
-    { include = "gfmodules_python_shared", from="src" }
+    { include="gfmodules_python_shared" },
 ]
 
 [tool.poetry.dependencies]
@@ -38,7 +38,7 @@ include = [
 ]
 
 [tool.mypy]
-files = ["src", "tests"]
+files = ["gfmodules_python_shared", "tests"]
 python_version = "3.11"
 strict = true
 cache_dir = "~/.cache/mypy"
