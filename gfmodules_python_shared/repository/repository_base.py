@@ -6,9 +6,9 @@ from sqlalchemy import select, or_, func
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import DeclarativeBase
 
-from src.gfmodules_python_shared.repository.exceptions import EntryNotFound
-from src.gfmodules_python_shared.session.db_session import DbSession
-from src.gfmodules_python_shared.utils.validators import validate_sets_equal
+from gfmodules_python_shared.repository.exceptions import EntryNotFound
+from gfmodules_python_shared.session.db_session import DbSession
+from gfmodules_python_shared.utils.validators import validate_sets_equal
 
 T = TypeVar("T", bound=DeclarativeBase)
 

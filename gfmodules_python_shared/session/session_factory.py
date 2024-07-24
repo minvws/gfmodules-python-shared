@@ -1,5 +1,5 @@
 from sqlalchemy import Engine
-from src.gfmodules_python_shared.session.db_session import DbSession
+from gfmodules_python_shared.session.db_session import DbSession
 
 
 class DbSessionFactory:
