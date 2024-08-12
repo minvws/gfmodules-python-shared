@@ -1,7 +1,7 @@
 import inject
 
-from gfmodules_python_shared.repository import RepositoryFactory
-from gfmodules_python_shared.session import DbSessionFactory
+from gfmodules_python_shared.repository.repository_factory import RepositoryFactory
+from gfmodules_python_shared.session.session_factory import DbSessionFactory
 from app.db import Database
 
 
