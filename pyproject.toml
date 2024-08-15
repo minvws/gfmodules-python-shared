@@ -49,3 +49,7 @@ cache_dir = "~/.cache/pytest"
 testpaths = [
     "tests",
 ]
+
+[tool.coverage.run]
+branch = true
+relative_files = true

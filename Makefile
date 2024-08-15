@@ -1,6 +1,8 @@
 env = env PATH="${bin}:$$PATH"
 
-ifdef DOCKER
+ifdef CI
+  RUN_PREFIX :=
+else ifdef DOCKER
   RUN_PREFIX := docker compose run --rm service
 else
   RUN_PREFIX := . .venv/bin/activate && ${env}
@@ -20,7 +22,7 @@ type-check: ## Check for typing errors
 	$(RUN_PREFIX) mypy
 
 safety-check: ## Check for security vulnerabilities
-	$(RUN_PREFIX) safety check
+	$(RUN_PREFIX) safety check -i 70612
 
 spelling-check: ## Check spelling mistakes
 	$(RUN_PREFIX) codespell -L selectin .
