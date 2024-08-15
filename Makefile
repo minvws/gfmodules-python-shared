@@ -1,6 +1,8 @@
 env = env PATH="${bin}:$$PATH"
 
-ifdef DOCKER
+ifdef CI
+  RUN_PREFIX :=
+else ifdef DOCKER
   RUN_PREFIX := docker compose run --rm service
 else
   RUN_PREFIX := . .venv/bin/activate && ${env}
