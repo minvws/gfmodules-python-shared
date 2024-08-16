@@ -27,6 +27,7 @@ def test_base_model_config_create_by_field_alias() -> None:
     assert model_instance.some_field == "test value"
     assert model_instance.another_field == 123
 
+
 def test_base_model_config_json_output() -> None:
     model_instance = NewModel(
         some_field="test value",
