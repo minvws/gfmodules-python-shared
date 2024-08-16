@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from gfmodules_python_shared.schema.pagination.schema import Page
+from gfmodules_python_shared.schema.pagination.page_schema import Page
 
 
 class User(BaseModel):
