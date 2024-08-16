@@ -48,10 +48,7 @@ class DbSession(object):
             raise e
 
     def scalars_first(self, statement: Select[tuple[T]]) -> T | None:
-        try:
-            return self.session.scalars(statement).first()
-        except DatabaseError as e:
-            raise e
+        return self.session.scalars(statement).first()
 
     def scalars_all(self, statement: Select[tuple[T]]) -> Sequence[T]:
         try:
