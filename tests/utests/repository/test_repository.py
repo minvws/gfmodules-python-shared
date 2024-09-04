@@ -1,9 +1,16 @@
-from typing import TypeVar
-from sqlalchemy.orm import DeclarativeBase, Session
+from collections.abc import Callable
+from typing import Type, TypeAlias
+from sqlalchemy.orm import Session
 from app.model import Person
 from app.repository import PersonRepository
+from gfmodules_python_shared.repository import T
+from gfmodules_python_shared.repository.base import GenericRepository
+from gfmodules_python_shared.repository.repository_factory import RepositoryFactory
 
-T = TypeVar("T", bound=DeclarativeBase)
+
+Inserter: TypeAlias = Callable[
+    [Session, Type[GenericRepository[T]], T], GenericRepository[T]
+]
 
 
 def are_the_same_table(actual: T, comparer: T) -> bool:
@@ -13,8 +20,10 @@ def are_the_same_table(actual: T, comparer: T) -> bool:
     )
 
 
-def test_create(person: Person, session: Session) -> None:
-    repository = PersonRepository(session)
+def test_create(
+    person: Person, repository_factory: RepositoryFactory, session: Session
+) -> None:
+    repository = repository_factory.create(PersonRepository, session)
     with session.begin():
         repository.create(person)
         actual_person = repository.get(id=person.id)
@@ -22,32 +31,33 @@ def test_create(person: Person, session: Session) -> None:
     assert actual_person and are_the_same_table(actual_person, person)
 
 
-def test_get(inserted_person: tuple[Session, Person]) -> None:
-    session, person = inserted_person
-    repository = PersonRepository(session)
+def test_get(person: Person, session: Session, insert_entity: Inserter[Person]) -> None:
+    repository = insert_entity(session, PersonRepository, person)
     with session.begin():
         actual_person = repository.get(id=person.id)
 
     assert actual_person and are_the_same_table(actual_person, person)
 
 
-def test_update(inserted_person: tuple[Session, Person]) -> None:
-    session, person = inserted_person
-    repository = PersonRepository(session)
+def test_update(
+    person: Person, session: Session, insert_entity: Inserter[Person]
+) -> None:
+    repository = insert_entity(session, PersonRepository, person)
     previous_name, person.name = (
         person.name,
         (new_name := "another name"),
     )
     with session.begin():
-        repository.update(repository.get_or_fail(id=person.id))
+        repository.update(repository.get_or_fail(id=person.id))  # type: ignore
 
     assert person.name != previous_name
     assert person.name == new_name
 
 
-def test_delete(inserted_person: tuple[Session, Person]) -> None:
-    session, person = inserted_person
-    repository = PersonRepository(session)
+def test_delete(
+    person: Person, session: Session, insert_entity: Inserter[Person]
+) -> None:
+    repository = insert_entity(session, PersonRepository, person)
     with session.begin():
         repository.delete(person)
     assert person.id is not None

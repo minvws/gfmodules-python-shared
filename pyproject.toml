@@ -16,6 +16,7 @@ python = "^3.11"
 sqlalchemy = "^2.0.25"
 inject = "^5.2.0"
 fastapi = ">=0.109.1,<1.0.0"
+more-itertools = "^10.5.0"
 
 
 [tool.poetry.group.dev.dependencies]
