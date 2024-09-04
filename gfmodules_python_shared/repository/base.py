@@ -1,61 +1,56 @@
-from abc import ABC, abstractmethod
-from typing import TypeVar, Union, Dict, Generic, Sequence, List, Type
+from abc import ABC, ABCMeta, abstractmethod
+from typing import TypeAlias, TypeVar, Union, Dict, Generic, Sequence, List, Type
 from uuid import UUID
 
 from sqlalchemy import select, or_, func
 from sqlalchemy.exc import InvalidRequestError
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Session
 
 from gfmodules_python_shared.repository.exceptions import EntryNotFound
-from gfmodules_python_shared.session.db_session import DbSession
 from gfmodules_python_shared.utils.validators import validate_sets_equal
 
 T = TypeVar("T", bound=DeclarativeBase)
 
-TArgs = TypeVar("TArgs", bound=Union[str, UUID, Dict[str, str]])
+CRUDKwargs: TypeAlias = Union[str, UUID, Dict[str, str]]
 
 
-class GenericRepository(Generic[T], ABC):
-    def __init__(self, session: DbSession):
+class GenericRepository(Generic[T], metaclass=ABCMeta):
+    @property
+    @abstractmethod
+    def model(cls) -> Type[T]:        ...
+
+    def __init__(self, session: Session) -> None:
         self.session = session
 
     @abstractmethod
+    def create(self, entity: T) -> None:...
+
+    @abstractmethod
+    def update(self, entity: T) -> None:...
+
+    @abstractmethod
+    def delete(self, entity: T) -> None:...
+
+    @abstractmethod
+    def get(self, **kwargs: CRUDKwargs) -> T | None:...
+
+
+class RepositoryBase(GenericRepository[T]):
     def create(self, entity: T) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    def update(self, entity: T) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    def delete(self, entity: T) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get(self, **kwargs: TArgs) -> T | None:
-        raise NotImplementedError
-
-
-class RepositoryBase(GenericRepository[T], ABC):
-    def __init__(self, session: DbSession, cls_model: Type[T]) -> None:
-        super().__init__(session)
-        self.model = cls_model
-
-    def create(self, entity: T) -> None:
-        return self.session.create(entity)
+        return self.session.add(entity)
 
     def update(self, entity: T) -> None:
-        return self.session.update(entity)
+        return self.session.refresh(entity)
 
     def delete(self, entity: T) -> None:
         return self.session.delete(entity)
 
-    def get(self, **kwargs: TArgs) -> T | None:
+    def get(self, **kwargs: CRUDKwargs) -> T | None:
         self._validate_kwargs(**kwargs)
         stmt = select(self.model).filter_by(**kwargs)
-        return self.session.scalars_first(stmt)
+        return self.session.scalars(stmt).first()
 
-    def get_or_fail(self, **kwargs: TArgs) -> T:
+    def get_or_fail(self, **kwargs: CRUDKwargs) -> T:
         self._validate_kwargs(**kwargs)
         result = self.get(**kwargs)
         if result is None:
@@ -64,7 +59,7 @@ class RepositoryBase(GenericRepository[T], ABC):
         return result
 
     def get_many(
-        self, limit: int | None = None, offset: int | None = None, **kwargs: TArgs
+        self, limit: int | None = None, offset: int | None = None, **kwargs: CRUDKwargs
     ) -> Sequence[T]:
         self._validate_kwargs(**kwargs)
         stmt = (
@@ -74,12 +69,12 @@ class RepositoryBase(GenericRepository[T], ABC):
             .order_by("created_at")
             .filter_by(**kwargs)
         )
-        return self.session.scalars_all(stmt)
+        return self.session.scalars(stmt).all()
 
-    def count(self, **kwargs: TArgs) -> int:
+    def count(self, **kwargs: CRUDKwargs) -> int:
         self._validate_kwargs(**kwargs)
         stmt = select(func.count()).select_from(self.model).filter_by(**kwargs)
-        result = self.session.execute_scalar(stmt)
+        result = self.session.execute(stmt).scalars()
         if isinstance(result, int) and not None:
             return result
 
@@ -98,7 +93,7 @@ class RepositoryBase(GenericRepository[T], ABC):
         conditions = [getattr(self.model, attribute).__eq__(value) for value in values]
         stmt = select(self.model).where(or_(*conditions))
 
-        return self.session.scalars_all(stmt)
+        return self.session.scalars(stmt).all()
 
     def get_by_property_exact(self, attribute: str, values: List[str]) -> Sequence[T]:
         results = self.get_by_property(attribute, values)
@@ -110,12 +105,9 @@ class RepositoryBase(GenericRepository[T], ABC):
 
         return results
 
-    def _validate_kwargs(self, **kwargs: TArgs) -> None:
+    def _validate_kwargs(self, **kwargs: CRUDKwargs) -> None:
         # check if kwargs are a subset of column names for a given model
-        if not issubclass(self.model, DeclarativeBase):
-            raise TypeError(f"Model {self.model} is not a subclass of Declarative Base")
-
-        if not (set([*kwargs]) <= set([*self.model.__table__.columns.keys()])):
+        if args:=", ".join(map(str, set(kwargs) - set(self.model.__table__.columns.keys()))):
             raise InvalidRequestError(
-                f"{[*kwargs]} is not a column in the {self.model.__name__}"
+                f"{args} is not a column in the {self.model.__name__}"
             )

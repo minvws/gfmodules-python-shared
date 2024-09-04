@@ -1,11 +1,14 @@
 import inspect
 import inject
+from functools import cache
 
 from typing import Callable, TypeVar, ParamSpec, Any
 
-from gfmodules_python_shared.repository.repository_base import RepositoryBase
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
+from gfmodules_python_shared.repository.base import RepositoryBase
 from gfmodules_python_shared.repository.repository_factory import RepositoryFactory
-from gfmodules_python_shared.session.session_factory import DbSessionFactory
 
 
 T = TypeVar("T")
@@ -16,12 +19,15 @@ P = ParamSpec("P")
 def get_repository() -> Any:
     return None
 
+@cache
+def get_session_factory(dsn: str = "sqlite:///:memory:") -> sessionmaker[Session]:
+    return sessionmaker(create_engine(dsn),expire_on_commit=True)
+
 
 def session_manager(func: Callable[P, T]) -> Callable[P, T]:
     def wrapper(self: ParamSpec, *args: P.args, **kwargs: P.kwargs) -> T:
         signature = inspect.signature(func)
 
-        db_session_factory = inject.instance(DbSessionFactory)
         repository_factory = inject.instance(RepositoryFactory)
 
         func_args: P.args = {}
@@ -30,9 +36,8 @@ def session_manager(func: Callable[P, T]) -> Callable[P, T]:
         for arg, param in zip(args, params_list[: len(args)]):
             func_args[param.name] = arg
 
-        session = db_session_factory.create()
 
-        with session:
+        with get_session_factory()() as session:
             for p in signature.parameters.values():
                 # copy self param to func_args if present
                 if p.name == "self":
