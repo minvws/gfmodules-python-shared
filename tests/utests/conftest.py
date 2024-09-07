@@ -11,7 +11,6 @@ from app.model import Person
 from gfmodules_python_shared.io.container import setup_container
 from gfmodules_python_shared.repository import T
 from gfmodules_python_shared.repository.base import GenericRepository
-from gfmodules_python_shared.repository.repository_factory import RepositoryFactory
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -22,11 +21,6 @@ def with_container() -> None:
 @pytest.fixture(scope="module")
 def session_maker() -> sessionmaker[Session]:
     return inject.instance(sessionmaker[Session])
-
-
-@pytest.fixture(scope="module")
-def repository_factory() -> RepositoryFactory:
-    return inject.instance(RepositoryFactory)
 
 
 @pytest.fixture
@@ -41,15 +35,15 @@ def person() -> Person:
 
 
 @pytest.fixture(scope="module")
-def insert_entity(
-    repository_factory: RepositoryFactory,
-) -> Callable[[Session, Type[GenericRepository[T]], T], GenericRepository[T]]:
+def insert_entity() -> (
+    Callable[[Session, Type[GenericRepository[T]], T], GenericRepository[T]]
+):
     def inserter(
         session: Session,
         repository_type: Type[GenericRepository[T]],
         entity: T,
     ) -> GenericRepository[T]:
-        repository = repository_factory.create(repository_type, session)
+        repository = repository_type(session)
         with session.begin():
             if repository.get(id=entity.id) is None:  # type: ignore
                 repository.create(entity)

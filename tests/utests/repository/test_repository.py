@@ -5,7 +5,6 @@ from app.model import Person
 from app.repository import PersonRepository
 from gfmodules_python_shared.repository import T
 from gfmodules_python_shared.repository.base import GenericRepository
-from gfmodules_python_shared.repository.repository_factory import RepositoryFactory
 
 
 Inserter: TypeAlias = Callable[
@@ -20,10 +19,8 @@ def are_the_same_table(actual: T, comparer: T) -> bool:
     )
 
 
-def test_create(
-    person: Person, repository_factory: RepositoryFactory, session: Session
-) -> None:
-    repository = repository_factory.create(PersonRepository, session)
+def test_create(person: Person, session: Session) -> None:
+    repository = PersonRepository(session)
     with session.begin():
         repository.create(person)
         actual_person = repository.get(id=person.id)
