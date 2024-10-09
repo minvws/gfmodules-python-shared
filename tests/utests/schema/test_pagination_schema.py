@@ -9,17 +9,9 @@ class User(BaseModel):
 
 
 def test_page_schema() -> None:
-    users = [
-        User(id=1, name="John Doe"),
-        User(id=2, name="Jane Smith")
-    ]
+    users = [User(id=1, name="John Doe"), User(id=2, name="Jane Smith")]
 
-    user_page = Page[User](
-        items=users,
-        limit=10,
-        offset=0,
-        total=50
-    )
+    user_page = Page[User](items=users, limit=10, offset=0, total=50)
 
     assert len(user_page.items) == 2
     assert user_page.items[0].name == "John Doe"
@@ -28,7 +20,7 @@ def test_page_schema() -> None:
     assert user_page.offset == 0
     assert user_page.total == 50
 
-    json_data = user_page.json()
+    json_data = user_page.model_dump_json()
     expected_json = (
         '{"items":[{"id":1,"name":"John Doe"},{"id":2,"name":"Jane Smith"}],'
         '"limit":10,"offset":0,"total":50}'

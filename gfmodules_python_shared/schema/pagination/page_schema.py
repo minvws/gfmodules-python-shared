@@ -1,4 +1,4 @@
-from typing import List, TypeVar, Generic
+from typing import Generic, List, TypeVar
 
 from gfmodules_python_shared.schema.base_model_schema import BaseModelConfig
 
