@@ -1,12 +1,12 @@
 import inspect
+from collections.abc import Sequence
+from functools import wraps
+from typing import Any, Callable, ParamSpec, TypeVar
+
 import inject
+from sqlalchemy.orm import DeclarativeBase, Session, attributes, sessionmaker
 
-from typing import Callable, TypeVar, ParamSpec, Any
-
-from gfmodules_python_shared.repository.repository_base import RepositoryBase
-from gfmodules_python_shared.repository.repository_factory import RepositoryFactory
-from gfmodules_python_shared.session.session_factory import DbSessionFactory
-
+from gfmodules_python_shared.repository.base import GenericRepository
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -17,48 +17,44 @@ def get_repository() -> Any:
     return None
 
 
-def session_manager(func: Callable[P, T]) -> Callable[P, T]:
-    def wrapper(self: ParamSpec, *args: P.args, **kwargs: P.kwargs) -> T:
-        signature = inspect.signature(func)
+def sync_value_with_database(session: Session, value: Any) -> None:
+    if isinstance(value, DeclarativeBase) and session.identity_map.contains_state(
+        attributes.instance_state(value)
+    ):
+        session.refresh(value)
+    elif isinstance(value, Sequence):
+        for e in value:
+            sync_value_with_database(session, e)
 
-        db_session_factory = inject.instance(DbSessionFactory)
-        repository_factory = inject.instance(RepositoryFactory)
 
-        func_args: P.args = {}
+def session_manager(service: Callable[P, T]) -> Callable[P, T]:
+    """
+    This decorator requests, injects and cleans your session for the given service
+    operation context.
 
-        params_list = [p for p in signature.parameters.values() if p.name != "self"]
-        for arg, param in zip(args, params_list[: len(args)]):
-            func_args[param.name] = arg
+    The session is encapsulated by this decorator, thus will not be exposed to the
+    service operation. Use of type annotation is vital, GenericTepository subclass
+    parameters are instantiated with the requested session, and injected in the service
+    operation signature.
 
-        session = db_session_factory.create()
+    return value is synced with the database before sent to caller.
+    """
 
-        with session:
-            for p in signature.parameters.values():
-                # copy self param to func_args if present
-                if p.name == "self":
-                    func_args[p.name] = self
-                    continue
+    @wraps(service)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        session_maker = inject.instance(sessionmaker[Session])
 
-                # Ignore param if already in kwargs
-                if p.name in kwargs:
-                    func_args[p.name] = kwargs[p.name]
-                    continue
+        with session_maker() as session:
+            kwargs |= {  # type: ignore
+                parameter.name: parameter.annotation(session)
+                for parameter in inspect.signature(service).parameters.values()
+                if inspect.isclass(parameter.annotation)
+                and issubclass(parameter.annotation, GenericRepository)
+                and parameter.default is None
+            }
+            with session.begin():
+                value = service(*args, **kwargs)
+            sync_value_with_database(session, value)
+        return value
 
-                # Ignore param if already handled in args
-                if p.name in func_args:
-                    continue
-
-                # Copy supplied None value to func_args
-                if p.annotation is inspect.Parameter.empty:
-                    func_args[p.name] = None
-                    continue
-
-                # Ignore anything that is not a repositoryBase
-                if not issubclass(p.annotation, RepositoryBase):
-                    continue
-                func_args[p.name] = repository_factory.create(p.annotation, session)
-
-            # Handle actual function inside session context
-            return func(**func_args)
-
-    return wrapper  # type: ignore
+    return wrapper

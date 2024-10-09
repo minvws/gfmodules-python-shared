@@ -1,7 +1,9 @@
 import pytest
 from pydantic import ValidationError
 
-from gfmodules_python_shared.schema.pagination.pagination_query_params_schema import PaginationQueryParams
+from gfmodules_python_shared.schema.pagination.pagination_query_params_schema import (
+    PaginationQueryParams,
+)
 
 
 def test_pagination_params_defaults() -> None:

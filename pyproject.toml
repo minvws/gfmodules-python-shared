@@ -7,8 +7,8 @@ authors = ["Ministerie van Volksgezondheid, Welzijn en Sport"]
 repository = "https://github.com/minvws/gfmodules-python-shared"
 readme = "README.md"
 packages = [
-    { include="gfmodules_python_shared" },
-    { include="gfmodules_python_shared/py.typed" },
+  { include = "gfmodules_python_shared" },
+  { include = "gfmodules_python_shared/py.typed" },
 ]
 
 [tool.poetry.dependencies]
@@ -16,6 +16,7 @@ python = "^3.11"
 sqlalchemy = "^2.0.25"
 inject = "^5.2.0"
 fastapi = ">=0.109.1,<1.0.0"
+more-itertools = "^10.5.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -33,10 +34,20 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
 cache-dir = "~/.cache/ruff"
-include = [
-    "pyproject.toml",
-    "src/*.py",
-    "tests/*.py",
+include = ["pyproject.toml", "/**/*.py"]
+# TODO: fix code structure in-order to remove these ignores
+ignore = ["B008", "PLR2004"]
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # isort
+  "C",   # flake8-comprehensions
+  "B",   # flake8-bugbear
+  "SIM", # flake-8-simplify
+  "PL",  # pylint
 ]
 
 [tool.mypy]
@@ -48,9 +59,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 cache_dir = "~/.cache/pytest"
-testpaths = [
-    "tests",
-]
+testpaths = ["tests"]
 
 [tool.coverage.run]
 branch = true
