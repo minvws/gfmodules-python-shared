@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class Database:
-    def __init__(self, dsn: str, create_tables: bool = True):
+    def __init__(self, dsn: str, create_tables: bool = False):
         try:
             self.engine = create_engine(dsn, echo=False)
         except BaseException as e:

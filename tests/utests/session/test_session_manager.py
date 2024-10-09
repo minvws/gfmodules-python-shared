@@ -1,24 +1,24 @@
 from collections.abc import Callable, Iterator
-from typing import Any, ParamSpec
-from uuid import UUID
+from typing import Any, Final, ParamSpec
 from unittest.mock import MagicMock
+from uuid import UUID
 
 import inject
 import pytest
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.model import Person
 from app.repository import PersonRepository
 from app.service import PersonService
-from gfmodules_python_shared.repository import T
 from gfmodules_python_shared.repository.base import GenericRepository
+from gfmodules_python_shared.schema.sql_model import TSQLModel
 from gfmodules_python_shared.session.session_manager import (
     get_repository,
     session_manager,
 )
 
 P = ParamSpec("P")
-id_ = UUID("ce27130b-5449-4a3a-90db-57d96daf117b")
+ID: Final[UUID] = UUID("ce27130b-5449-4a3a-90db-57d96daf117b")
 
 
 @pytest.fixture
@@ -97,25 +97,25 @@ def is_repositories_instansiated(
         pytest.param(
             session_manager(get_or_create),
             (),
-            {"person_id": id_},
+            {"person_id": ID},
             id="function",
         ),
         pytest.param(
             PersonService().get_one,
-            (id_,),
+            (ID,),
             {},
             id="method common usecase",
         ),
         pytest.param(
             session_manager(is_repositories_instansiated),
-            (id_,),
+            (ID,),
             {},
             id="instantiate repositories",
         ),
     ),
 )
 def test_parameter_compositions(
-    service: Callable[P, T],
+    service: Callable[P, TSQLModel],
     args: tuple[Any],
     kwargs: dict[str, Any],
     mock_inject: tuple[MagicMock, MagicMock],
@@ -138,12 +138,12 @@ def test_parameter_compositions(
             id="no repository arguments",
         ),
         pytest.param(
-            is_repositories_instansiated, (id_,), {}, id="repositories not instantiated"
+            is_repositories_instansiated, (ID,), {}, id="repositories not instantiated"
         ),
     ),
 )
 def test_no_decorator(
-    service: Callable[P, T],
+    service: Callable[P, TSQLModel],
     args: tuple[Any],
     kwargs: dict[str, Any],
     mock_inject: tuple[MagicMock, MagicMock],
@@ -155,6 +155,6 @@ def test_no_decorator(
     session.close.assert_not_called()
 
 
-def test_no_repository_enstansiation() -> None:
+def test_no_repository_instansiation() -> None:
     with pytest.raises(AttributeError, match=r"'NoneType' object has no attribute .*"):
-        get_or_create(person_id=id_)
+        get_or_create(person_id=ID)

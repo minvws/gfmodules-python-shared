@@ -1,21 +1,22 @@
-from collections.abc import Callable, Iterator
-from typing import Type
-from uuid import UUID
+from collections.abc import Callable, Iterable, Iterator
 
 import inject
 import pytest
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.container import container_config
-from app.model import Person
-from gfmodules_python_shared.io.container import setup_container
-from gfmodules_python_shared.repository import T
-from gfmodules_python_shared.repository.base import GenericRepository
+from app.db import Database
+from gfmodules_python_shared.schema.sql_model import SQLModelBase, TSQLModel
 
 
 @pytest.fixture(scope="module", autouse=True)
 def with_container() -> None:
-    setup_container(container_config)
+    db = Database(dsn="sqlite:///:memory:", create_tables=True)
+    inject.configure(
+        lambda binder: binder.bind(Database, db).bind(  # type: ignore
+            sessionmaker[Session], sessionmaker(db.engine)
+        ),
+        clear=True,
+    )
 
 
 @pytest.fixture(scope="module")
@@ -30,23 +31,12 @@ def session(session_maker: sessionmaker[Session]) -> Iterator[Session]:
 
 
 @pytest.fixture(scope="module")
-def person() -> Person:
-    return Person(id=UUID("caad98ff-53f6-4451-9d74-1520f7c5dbe5"), name="some person")
-
-
-@pytest.fixture(scope="module")
-def insert_entity() -> (
-    Callable[[Session, Type[GenericRepository[T]], T], GenericRepository[T]]
-):
+def insert_entities() -> Callable[[Session, Iterable[SQLModelBase]], None]:
     def inserter(
         session: Session,
-        repository_type: Type[GenericRepository[T]],
-        entity: T,
-    ) -> GenericRepository[T]:
-        repository = repository_type(session)
+        entities: Iterable[TSQLModel],
+    ) -> None:
         with session.begin():
-            if repository.get(id=entity.id) is None:  # type: ignore
-                repository.create(entity)
-        return repository
+            session.bulk_save_objects(entities)
 
     return inserter
