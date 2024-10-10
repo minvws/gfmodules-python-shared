@@ -91,7 +91,7 @@ class RepositoryBase(GenericRepository[TSQLModel]):
         Generates a chained OR condition based on the provided attribute values:
         eg: SELECT * FROM users WHERE users.email = :email_1 OR users.email = :email_2
         """
-        if attribute not in self.model.__table__.columns.keys(): # noqa: SIM118
+        if attribute not in self.model.__table__.columns.keys():  # noqa: SIM118
             raise AttributeError(
                 f"{attribute} is not a column in the {self.model.__name__}"
             )
