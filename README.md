@@ -1,6 +1,9 @@
+# README
+
 **Summary**:
 
-The purpose of this package is to include shared interfaces that can be used across all of GFModules repositories.
+The purpose of this package is to include shared interfaces that can be used
+across all of GFModules repositories.
 
 **Content:**
 
@@ -16,4 +19,5 @@ For documentation on the schemas, please read the [schema documentation](docs/sc
 
 **Note:**
 
-This repository is still in experimental stage and not yet ready to be used publicly yet.  
+This repository is still in experimental stage and not yet ready to be used
+publicly.
