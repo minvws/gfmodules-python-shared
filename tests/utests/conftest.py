@@ -2,19 +2,18 @@ from collections.abc import Callable, Iterable, Iterator
 
 import inject
 import pytest
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.db import Database
 from gfmodules_python_shared.schema.sql_model import SQLModelBase, TSQLModel
 
 
 @pytest.fixture(scope="module", autouse=True)
 def with_container() -> None:
-    db = Database(dsn="sqlite:///:memory:", create_tables=True)
+    engine = create_engine("sqlite:///:memory:")
+    SQLModelBase.metadata.create_all(engine)
     inject.configure(
-        lambda binder: binder.bind(Database, db).bind(  # type: ignore
-            sessionmaker[Session], sessionmaker(db.engine)
-        ),
+        lambda binder: binder.bind(sessionmaker[Session], sessionmaker(engine)),  # type: ignore
         clear=True,
     )
 
