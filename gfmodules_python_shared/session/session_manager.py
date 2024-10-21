@@ -1,15 +1,20 @@
 import inspect
-from collections.abc import Sequence
+import logging
+import random
+from collections.abc import Callable, Sequence
 from functools import wraps
-from typing import Any, Callable, ParamSpec, TypeVar
+from time import sleep
+from typing import Any, ParamSpec, TypeVar
 
 import inject
+from sqlalchemy.exc import DatabaseError, OperationalError
 from sqlalchemy.orm import DeclarativeBase, Session, attributes, sessionmaker
 
 from gfmodules_python_shared.repository.base import GenericRepository
 
 T = TypeVar("T")
 P = ParamSpec("P")
+logger = logging.getLogger(__name__)
 
 
 # needs changing
@@ -27,6 +32,30 @@ def sync_value_with_database(session: Session, value: Any) -> None:
             sync_value_with_database(session, e)
 
 
+def service_transaction_retry_policy(
+    session: Session,
+    service: Callable[P, T],
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> T:
+    # TODO: pull backoffs from config
+    # inject.instance(Config).database.backoffs
+    backoffs = [0.1, 0.2, 0.4]
+    for backoff in backoffs:
+        try:
+            with session.begin():
+                return service(*args, **kwargs)
+        except (OperationalError, DatabaseError, Exception) as e:
+            logger.warning(
+                f"Retrying transaction operation due to {e.__class__.__name__}: {e}"
+            )
+        logger.info(f"Retrying {service} in {backoff} seconds")
+        sleep(backoff + random.uniform(0, 0.1))
+    raise RuntimeError(
+        f"Transaction '{service.__name__}' failed after {len(backoffs)} retries"
+    )
+
+
 def session_manager(service: Callable[P, T]) -> Callable[P, T]:
     """
     This decorator requests, injects and cleans your session for the given service
@@ -37,14 +66,15 @@ def session_manager(service: Callable[P, T]) -> Callable[P, T]:
     parameters are instantiated with the requested session, and injected in the service
     operation signature.
 
+    Failed transaction will be retried according to the service transaction retry policy
+    If transaction is still unsuccessful after all retry, then a runtime error is raised
+
     return value is synced with the database before sent to caller.
     """
 
     @wraps(service)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-        session_maker = inject.instance(sessionmaker[Session])
-
-        with session_maker() as session:
+        with inject.instance(sessionmaker[Session])() as session:
             kwargs |= {  # type: ignore
                 parameter.name: parameter.annotation(session)
                 for parameter in inspect.signature(service).parameters.values()
@@ -52,8 +82,7 @@ def session_manager(service: Callable[P, T]) -> Callable[P, T]:
                 and issubclass(parameter.annotation, GenericRepository)
                 and parameter.default is None
             }
-            with session.begin():
-                value = service(*args, **kwargs)
+            value = service_transaction_retry_policy(session, service, *args, **kwargs)
             sync_value_with_database(session, value)
         return value
 
